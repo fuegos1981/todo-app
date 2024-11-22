@@ -1,0 +1,878 @@
+I would like to develop a Java application. I have task "Create a RESTful API to manage a simple todo list application using Spring Boot, Hibernate, and MySQL. The application should allow users to create, read, update, and delete todo items. Each item should have a title and a description. Use Hibernate to persist the items in the database." Can you help me to write code.
+ChatGPT said:
+ChatGPT
+
+Certainly! Below is a step-by-step guide and code snippets to create a RESTful API for a simple Todo list application using Spring Boot, Hibernate, and MySQL.
+1. Project Setup
+
+    Create a Spring Boot project using a tool like Spring Initializr.
+    Add dependencies for Spring Web, Spring Data JPA, MySQL Driver, and optionally Spring Boot DevTools for hot reloading.
+
+2. Application Properties
+
+In src/main/resources/application.properties, configure your MySQL database and Hibernate settings:
+
+# Database configuration
+spring.datasource.url=jdbc:mysql://localhost:3306/todo_db?useSSL=false&serverTimezone=UTC
+spring.datasource.username=root
+spring.datasource.password=yourpassword
+
+# Hibernate configuration
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.show-sql=true
+spring.jpa.properties.hibernate.format_sql=true
+
+3. Todo Entity
+
+Create a JPA entity to represent the todo items.
+
+package com.example.todoapp.entity;
+
+import jakarta.persistence.*;
+
+@Entity
+@Table(name = "todos")
+public class Todo {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(nullable = false)
+    private String title;
+
+    @Column(nullable = false)
+    private String description;
+
+    // Constructors
+    public Todo() {
+    }
+
+    public Todo(String title, String description) {
+        this.title = title;
+        this.description = description;
+    }
+
+    // Getters and Setters
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public String getTitle() {
+        return title;
+    }
+
+    public void setTitle(String title) {
+        this.title = title;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+}
+
+4. Todo Repository
+
+Create a repository interface to handle CRUD operations.
+
+package com.example.todoapp.repository;
+
+import com.example.todoapp.entity.Todo;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+@Repository
+public interface TodoRepository extends JpaRepository<Todo, Long> {
+}
+
+5. Todo Service
+
+Create a service layer to handle business logic.
+
+package com.example.todoapp.service;
+
+import com.example.todoapp.entity.Todo;
+import com.example.todoapp.repository.TodoRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+import java.util.Optional;
+
+@Service
+public class TodoService {
+    @Autowired
+    private TodoRepository todoRepository;
+
+    public List<Todo> getAllTodos() {
+        return todoRepository.findAll();
+    }
+
+    public Optional<Todo> getTodoById(Long id) {
+        return todoRepository.findById(id);
+    }
+
+    public Todo createTodo(Todo todo) {
+        return todoRepository.save(todo);
+    }
+
+    public Todo updateTodo(Long id, Todo updatedTodo) {
+        return todoRepository.findById(id).map(todo -> {
+            todo.setTitle(updatedTodo.getTitle());
+            todo.setDescription(updatedTodo.getDescription());
+            return todoRepository.save(todo);
+        }).orElseThrow(() -> new RuntimeException("Todo not found"));
+    }
+
+    public void deleteTodoById(Long id) {
+        todoRepository.deleteById(id);
+    }
+}
+
+6. Todo Controller
+
+Create a REST controller to expose endpoints.
+
+package com.example.todoapp.controller;
+
+import com.example.todoapp.entity.Todo;
+import com.example.todoapp.service.TodoService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/todos")
+public class TodoController {
+    @Autowired
+    private TodoService todoService;
+
+    // Get all todos
+    @GetMapping
+    public List<Todo> getAllTodos() {
+        return todoService.getAllTodos();
+    }
+
+    // Get a todo by ID
+    @GetMapping("/{id}")
+    public ResponseEntity<Todo> getTodoById(@PathVariable Long id) {
+        return todoService.getTodoById(id)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    // Create a new todo
+    @PostMapping
+    public Todo createTodo(@RequestBody Todo todo) {
+        return todoService.createTodo(todo);
+    }
+
+    // Update an existing todo
+    @PutMapping("/{id}")
+    public ResponseEntity<Todo> updateTodo(@PathVariable Long id, @RequestBody Todo updatedTodo) {
+        try {
+            return ResponseEntity.ok(todoService.updateTodo(id, updatedTodo));
+        } catch (RuntimeException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    // Delete a todo by ID
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteTodoById(@PathVariable Long id) {
+        todoService.deleteTodoById(id);
+        return ResponseEntity.noContent().build();
+    }
+}
+
+7. Run the Application
+
+    Start a MySQL database server and create a database named todo_db.
+    Run the application using mvn spring-boot:run or through your IDE.
+    Use tools like Postman or cURL to test the API endpoints:
+        GET /api/todos
+        GET /api/todos/{id}
+        POST /api/todos with a JSON body like { "title": "Buy milk", "description": "Remember to buy milk" }
+        PUT /api/todos/{id} to update a todo.
+        DELETE /api/todos/{id} to delete a todo.
+
+Let me know if you need help with additional features, testing, or deployment!
+You said:
+I want to use maven in my application, how I need to change my code
+ChatGPT said:
+ChatGPT
+
+To use Maven in your Spring Boot application, follow these steps:
+1. Add pom.xml File
+
+Replace or create a pom.xml file in your project root with the following configuration:
+
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>com.example</groupId>
+    <artifactId>todo-app</artifactId>
+    <version>1.0.0</version>
+    <packaging>jar</packaging>
+
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.1.0</version>
+        <relativePath/> <!-- Lookup parent from repository -->
+    </parent>
+
+    <dependencies>
+        <!-- Spring Boot Dependencies -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-jpa</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-validation</artifactId>
+        </dependency>
+
+        <!-- MySQL Driver -->
+        <dependency>
+            <groupId>mysql</groupId>
+            <artifactId>mysql-connector-j</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
+        <!-- Optional: Spring Boot DevTools for hot reload -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-devtools</artifactId>
+            <scope>runtime</scope>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- Optional: Testing dependencies -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <!-- Spring Boot Maven Plugin -->
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+</project>
+
+2. Update Directory Structure
+
+Ensure your directory structure matches Maven's standard layout:
+
+src
+├── main
+│   ├── java
+│   │   └── com
+│   │       └── example
+│   │           └── todoapp
+│   │               ├── entity
+│   │               │   └── Todo.java
+│   │               ├── repository
+│   │               │   └── TodoRepository.java
+│   │               ├── service
+│   │               │   └── TodoService.java
+│   │               ├── controller
+│   │               │   └── TodoController.java
+│   │               └── TodoAppApplication.java
+│   └── resources
+│       ├── application.properties
+│       └── static
+└── test
+    ├── java
+    └── resources
+
+3. Main Application Class
+
+Ensure the main application class (TodoAppApplication) is correctly annotated and in the base package:
+
+package com.example.todoapp;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication
+public class TodoAppApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(TodoAppApplication.class, args);
+    }
+}
+
+4. Build and Run the Application
+Build with Maven:
+
+Run the following command to package your application:
+
+mvn clean package
+
+Run the Application:
+
+After building the .jar file, you can run it using:
+
+java -jar target/todo-app-1.0.0.jar
+
+Alternatively, during development, use:
+
+mvn spring-boot:run
+
+5. Test the Endpoints
+
+After starting the application, the API endpoints should work the same way as previously described. Test them using tools like Postman or curl.
+
+This pom.xml setup and directory structure ensure your application is Maven-compliant. Let me know if you need further assistance!
+You said:
+Can you create script sql  which create table todos and add 10 rows in table
+ChatGPT said:
+ChatGPT
+
+Here's an SQL script to create the todos table and populate it with 10 sample rows:
+
+-- Create database (if not already created)
+CREATE DATABASE IF NOT EXISTS todo_db;
+
+-- Use the database
+USE todo_db;
+
+-- Create the 'todos' table
+CREATE TABLE IF NOT EXISTS todos (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    description TEXT NOT NULL
+);
+
+-- Insert sample data into 'todos' table
+INSERT INTO todos (title, description) VALUES
+('Buy groceries', 'Milk, Bread, Cheese, Eggs'),
+('Clean the house', 'Living room, Kitchen, Bathroom'),
+('Finish project report', 'Complete the financial analysis and conclusion'),
+('Read a book', 'Start reading "Atomic Habits"'),
+('Exercise', '30 minutes of jogging and stretching'),
+('Plan vacation', 'Research destinations and book flights'),
+('Call mom', 'Catch up and discuss family updates'),
+('Organize closet', 'Sort clothes into keep, donate, and toss piles'),
+('Prepare presentation', 'Create slides for the meeting on Friday'),
+('Watch a movie', 'Relax and watch "Inception"');
+
+-- Verify the data
+SELECT * FROM todos;
+
+Instructions:
+
+    Save the script to a file, e.g., setup_todo_db.sql.
+    Open your MySQL client or a tool like phpMyAdmin or MySQL Workbench.
+    Execute the script:
+
+mysql -u root -p < setup_todo_db.sql
+
+Verify that the todos table was created and populated by running:
+
+    SELECT * FROM todos;
+
+This script creates the table with an id as the primary key (auto-incrementing), and each row has a title and description. Let me know if you need modifications!
+You said:
+can you create unit tests for my classes
+ChatGPT said:
+ChatGPT
+
+Sure! Below is a set of unit tests for your application. We will use JUnit 5 and Mockito for the tests.
+1. Add Test Dependencies
+
+Ensure the following dependencies are in your pom.xml:
+
+<dependencies>
+    <!-- JUnit 5 -->
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-test</artifactId>
+        <scope>test</scope>
+        <exclusions>
+            <exclusion>
+                <groupId>org.junit.vintage</groupId>
+                <artifactId>junit-vintage-engine</artifactId>
+            </exclusion>
+        </exclusions>
+    </dependency>
+
+    <!-- Mockito -->
+    <dependency>
+        <groupId>org.mockito</groupId>
+        <artifactId>mockito-core</artifactId>
+        <scope>test</scope>
+    </dependency>
+</dependencies>
+
+2. Unit Tests for TodoService
+
+Create the test class TodoServiceTest in src/test/java/com/example/todoapp/service:
+
+package com.example.todoapp.service;
+
+import com.example.todoapp.entity.Todo;
+import com.example.todoapp.repository.TodoRepository;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+
+import java.util.Arrays;
+import java.util.Optional;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
+
+class TodoServiceTest {
+
+    @Mock
+    private TodoRepository todoRepository;
+
+    @InjectMocks
+    private TodoService todoService;
+
+    @BeforeEach
+    void setUp() {
+        MockitoAnnotations.openMocks(this);
+    }
+
+    @Test
+    void getAllTodos_ShouldReturnListOfTodos() {
+        when(todoRepository.findAll()).thenReturn(Arrays.asList(
+                new Todo("Task 1", "Description 1"),
+                new Todo("Task 2", "Description 2")
+        ));
+
+        var todos = todoService.getAllTodos();
+
+        assertEquals(2, todos.size());
+        assertEquals("Task 1", todos.get(0).getTitle());
+        assertEquals("Task 2", todos.get(1).getTitle());
+        verify(todoRepository, times(1)).findAll();
+    }
+
+    @Test
+    void getTodoById_ShouldReturnTodo_WhenExists() {
+        Todo todo = new Todo("Task", "Description");
+        when(todoRepository.findById(1L)).thenReturn(Optional.of(todo));
+
+        var result = todoService.getTodoById(1L);
+
+        assertTrue(result.isPresent());
+        assertEquals("Task", result.get().getTitle());
+        verify(todoRepository, times(1)).findById(1L);
+    }
+
+    @Test
+    void getTodoById_ShouldReturnEmpty_WhenNotExists() {
+        when(todoRepository.findById(1L)).thenReturn(Optional.empty());
+
+        var result = todoService.getTodoById(1L);
+
+        assertFalse(result.isPresent());
+        verify(todoRepository, times(1)).findById(1L);
+    }
+
+    @Test
+    void createTodo_ShouldSaveAndReturnTodo() {
+        Todo todo = new Todo("New Task", "New Description");
+        when(todoRepository.save(todo)).thenReturn(todo);
+
+        var result = todoService.createTodo(todo);
+
+        assertNotNull(result);
+        assertEquals("New Task", result.getTitle());
+        verify(todoRepository, times(1)).save(todo);
+    }
+
+    @Test
+    void updateTodo_ShouldUpdateAndReturnUpdatedTodo() {
+        Todo existingTodo = new Todo("Old Task", "Old Description");
+        existingTodo.setId(1L);
+
+        Todo updatedTodo = new Todo("Updated Task", "Updated Description");
+
+        when(todoRepository.findById(1L)).thenReturn(Optional.of(existingTodo));
+        when(todoRepository.save(existingTodo)).thenReturn(existingTodo);
+
+        var result = todoService.updateTodo(1L, updatedTodo);
+
+        assertNotNull(result);
+        assertEquals("Updated Task", result.getTitle());
+        verify(todoRepository, times(1)).findById(1L);
+        verify(todoRepository, times(1)).save(existingTodo);
+    }
+
+    @Test
+    void deleteTodoById_ShouldInvokeDeleteById() {
+        doNothing().when(todoRepository).deleteById(1L);
+
+        todoService.deleteTodoById(1L);
+
+        verify(todoRepository, times(1)).deleteById(1L);
+    }
+}
+
+3. Unit Tests for TodoController
+
+Create the test class TodoControllerTest in src/test/java/com/example/todoapp/controller:
+
+package com.example.todoapp.controller;
+
+import com.example.todoapp.entity.Todo;
+import com.example.todoapp.service.TodoService;
+import org.junit.jupiter.api.Test;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+import org.springframework.http.ResponseEntity;
+
+import java.util.Arrays;
+import java.util.Optional;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
+
+class TodoControllerTest {
+
+    @Mock
+    private TodoService todoService;
+
+    @InjectMocks
+    private TodoController todoController;
+
+    public TodoControllerTest() {
+        MockitoAnnotations.openMocks(this);
+    }
+
+    @Test
+    void getAllTodos_ShouldReturnTodos() {
+        when(todoService.getAllTodos()).thenReturn(Arrays.asList(
+                new Todo("Task 1", "Description 1"),
+                new Todo("Task 2", "Description 2")
+        ));
+
+        var todos = todoController.getAllTodos();
+
+        assertEquals(2, todos.size());
+        assertEquals("Task 1", todos.get(0).getTitle());
+        verify(todoService, times(1)).getAllTodos();
+    }
+
+    @Test
+    void getTodoById_ShouldReturnTodo_WhenExists() {
+        Todo todo = new Todo("Task", "Description");
+        when(todoService.getTodoById(1L)).thenReturn(Optional.of(todo));
+
+        var response = todoController.getTodoById(1L);
+
+        assertTrue(response.getStatusCode().is2xxSuccessful());
+        assertNotNull(response.getBody());
+        assertEquals("Task", response.getBody().getTitle());
+        verify(todoService, times(1)).getTodoById(1L);
+    }
+
+    @Test
+    void getTodoById_ShouldReturnNotFound_WhenNotExists() {
+        when(todoService.getTodoById(1L)).thenReturn(Optional.empty());
+
+        var response = todoController.getTodoById(1L);
+
+        assertTrue(response.getStatusCode().is4xxClientError());
+        verify(todoService, times(1)).getTodoById(1L);
+    }
+
+    @Test
+    void createTodo_ShouldReturnCreatedTodo() {
+        Todo todo = new Todo("New Task", "New Description");
+        when(todoService.createTodo(todo)).thenReturn(todo);
+
+        var result = todoController.createTodo(todo);
+
+        assertNotNull(result);
+        assertEquals("New Task", result.getTitle());
+        verify(todoService, times(1)).createTodo(todo);
+    }
+
+    @Test
+    void deleteTodoById_ShouldReturnNoContent() {
+        doNothing().when(todoService).deleteTodoById(1L);
+
+        var response = todoController.deleteTodoById(1L);
+
+        assertTrue(response.getStatusCode().is2xxSuccessful());
+        verify(todoService, times(1)).deleteTodoById(1L);
+    }
+}
+
+4. Run Tests
+
+Use Maven to run the tests:
+
+mvn test
+
+This will execute all the unit tests, ensuring that your service and controller methods work as expected. Let me know if you need help with integration tests or further refinements!
+You said:
+can you create unit tests for my class Todo
+ChatGPT said:
+ChatGPT
+
+Unit testing for the Todo entity is usually not required because it is a plain data object (POJO) without any business logic. However, if you want to ensure the correct behavior of methods like constructors, getters, setters, and overridden methods (e.g., equals, hashCode, toString), we can write unit tests for them.
+
+Here’s how you can write unit tests for the Todo class:
+1. Unit Test for Todo Class
+
+Create a test class TodoTest in src/test/java/com/example/todoapp/entity:
+
+package com.example.todoapp.entity;
+
+import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+class TodoTest {
+
+    @Test
+    void testTodoConstructorAndGetters() {
+        // Arrange
+        String title = "Test Title";
+        String description = "Test Description";
+
+        // Act
+        Todo todo = new Todo(title, description);
+
+        // Assert
+        assertEquals(title, todo.getTitle());
+        assertEquals(description, todo.getDescription());
+    }
+
+    @Test
+    void testSettersAndGetters() {
+        // Arrange
+        Todo todo = new Todo();
+
+        // Act
+        todo.setId(1L);
+        todo.setTitle("Updated Title");
+        todo.setDescription("Updated Description");
+
+        // Assert
+        assertEquals(1L, todo.getId());
+        assertEquals("Updated Title", todo.getTitle());
+        assertEquals("Updated Description", todo.getDescription());
+    }
+
+    @Test
+    void testEqualsAndHashCode() {
+        // Arrange
+        Todo todo1 = new Todo("Task", "Description");
+        todo1.setId(1L);
+
+        Todo todo2 = new Todo("Task", "Description");
+        todo2.setId(1L);
+
+        Todo todo3 = new Todo("Other Task", "Other Description");
+        todo3.setId(2L);
+
+        // Act & Assert
+        assertEquals(todo1, todo2);
+        assertNotEquals(todo1, todo3);
+        assertEquals(todo1.hashCode(), todo2.hashCode());
+        assertNotEquals(todo1.hashCode(), todo3.hashCode());
+    }
+
+    @Test
+    void testToString() {
+        // Arrange
+        Todo todo = new Todo("Test Title", "Test Description");
+        todo.setId(1L);
+
+        String expectedString = "Todo{id=1, title='Test Title', description='Test Description'}";
+
+        // Act
+        String actualString = todo.toString();
+
+        // Assert
+        assertEquals(expectedString, actualString);
+    }
+}
+
+2. Explanation of the Tests
+
+    Constructor and Getter Test (testTodoConstructorAndGetters)
+        Verifies that the constructor correctly initializes the Todo object.
+        Checks the getTitle and getDescription methods.
+
+    Setter and Getter Test (testSettersAndGetters)
+        Verifies that setters update fields and getters return the correct values.
+
+    Equality and Hash Code Test (testEqualsAndHashCode)
+        Ensures that two Todo objects with the same id are considered equal.
+        Verifies that the hashCode behaves consistently with equals.
+
+    ToString Test (testToString)
+        Checks that the toString method returns the expected string representation of the object.
+
+3. Run the Tests
+
+Run the tests with Maven:
+
+mvn test
+
+These tests ensure that your Todo class behaves as expected, particularly if it’s used in collections or debugging/logging scenarios where toString, equals, and hashCode might be important. Let me know if you’d like to extend these tests further!
+You said:
+Can you create unit test for method "@PutMapping("/{id}")
+    public ResponseEntity<Todo> updateTodo(@PathVariable Long id, @RequestBody Todo updatedTodo) {
+        try {
+            return ResponseEntity.ok(todoService.updateTodo(id, updatedTodo));
+        } catch (RuntimeException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }"
+ChatGPT said:
+ChatGPT
+
+Here’s how you can write a unit test for the @PutMapping method in your controller. We'll use JUnit 5 and Mockito to test it.
+1. Test Method: Overview
+
+The method being tested is:
+
+@PutMapping("/{id}")
+public ResponseEntity<Todo> updateTodo(@PathVariable Long id, @RequestBody Todo updatedTodo) {
+    try {
+        return ResponseEntity.ok(todoService.updateTodo(id, updatedTodo));
+    } catch (RuntimeException e) {
+        return ResponseEntity.notFound().build();
+    }
+}
+
+To test this, we'll verify two scenarios:
+
+    When the todo is successfully updated: The service returns the updated todo, and the response has a status code of 200 OK.
+    When the todo is not found: The service throws a RuntimeException, and the response has a status code of 404 Not Found.
+
+2. Test Class
+
+Create a test class TodoControllerTest in src/test/java/com/example/todoapp/controller:
+
+package com.example.todoapp.controller;
+
+import com.example.todoapp.entity.Todo;
+import com.example.todoapp.service.TodoService;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+import org.springframework.http.ResponseEntity;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
+
+class TodoControllerTest {
+
+    @Mock
+    private TodoService todoService;
+
+    @InjectMocks
+    private TodoController todoController;
+
+    @BeforeEach
+    void setUp() {
+        MockitoAnnotations.openMocks(this);
+    }
+
+    @Test
+    void updateTodo_ShouldReturnUpdatedTodo_WhenSuccessful() {
+        // Arrange
+        Long id = 1L;
+        Todo updatedTodo = new Todo("Updated Title", "Updated Description");
+        updatedTodo.setId(id);
+
+        when(todoService.updateTodo(id, updatedTodo)).thenReturn(updatedTodo);
+
+        // Act
+        ResponseEntity<Todo> response = todoController.updateTodo(id, updatedTodo);
+
+        // Assert
+        assertNotNull(response);
+        assertEquals(200, response.getStatusCodeValue());
+        assertNotNull(response.getBody());
+        assertEquals("Updated Title", response.getBody().getTitle());
+        assertEquals("Updated Description", response.getBody().getDescription());
+
+        verify(todoService, times(1)).updateTodo(id, updatedTodo);
+    }
+
+    @Test
+    void updateTodo_ShouldReturnNotFound_WhenTodoNotFound() {
+        // Arrange
+        Long id = 1L;
+        Todo updatedTodo = new Todo("Updated Title", "Updated Description");
+
+        when(todoService.updateTodo(id, updatedTodo)).thenThrow(new RuntimeException("Todo not found"));
+
+        // Act
+        ResponseEntity<Todo> response = todoController.updateTodo(id, updatedTodo);
+
+        // Assert
+        assertNotNull(response);
+        assertEquals(404, response.getStatusCodeValue());
+        assertNull(response.getBody());
+
+        verify(todoService, times(1)).updateTodo(id, updatedTodo);
+    }
+}
+
+3. Explanation of the Tests
+Test 1: updateTodo_ShouldReturnUpdatedTodo_WhenSuccessful
+
+    Purpose: Ensures the method returns 200 OK with the updated Todo when the service successfully updates the Todo.
+    Steps:
+        Mock the todoService.updateTodo method to return the updated Todo.
+        Call the updateTodo method in the controller.
+        Verify that:
+            The response status code is 200 OK.
+            The response body contains the expected title and description.
+            The todoService.updateTodo method was called exactly once.
+
+Test 2: updateTodo_ShouldReturnNotFound_WhenTodoNotFound
+
+    Purpose: Ensures the method returns 404 Not Found when the service throws a RuntimeException.
+    Steps:
+        Mock the todoService.updateTodo method to throw a RuntimeException.
+        Call the updateTodo method in the controller.
+        Verify that:
+            The response status code is 404 Not Found.
+            The response body is null.
+            The todoService.updateTodo method was called exactly once.
+
+4. Run the Tests
+
+Run the tests using Maven:
+
+mvn test
+
+Both tests should pass if your controller behaves as expected. Let me know if you need any additional enhancements!
